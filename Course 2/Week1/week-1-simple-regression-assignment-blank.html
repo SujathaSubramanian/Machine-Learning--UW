@@ -1,0 +1,766 @@
+<html><head><style type="text/css">
+.highlight{background: #f8f8f8; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .1em;padding:0em .5em;border-radius: 4px;}
+.k{color: #338822; font-weight: bold;}
+.kn{color: #338822; font-weight: bold;}
+.mi{color: #000000;}
+.o{color: #000000;}
+.ow{color: #BA22FF;  font-weight: bold;}
+.nb{color: #338822;}
+.n{color: #000000;}
+.s{color: #cc2222;}
+.se{color: #cc2222; font-weight: bold;}
+.si{color: #C06688; font-weight: bold;}
+.nn{color: #4D00FF; font-weight: bold;}
+</style>
+
+</head><body><div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Regression-Week-1:-Simple-Linear-Regression">Regression Week 1: Simple Linear Regression<a class="anchor-link" href="#Regression-Week-1:-Simple-Linear-Regression">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>In this notebook we will use data on house sales in King County to predict house prices using simple (one input) linear regression. You will:</p>
+<ul>
+<li>Use graphlab SArray and SFrame functions to compute important summary statistics</li>
+<li>Write a function to compute the Simple Linear Regression weights using the closed form solution</li>
+<li>Write a function to make predictions of the output given the input feature</li>
+<li>Turn the regression around to predict the input given the output</li>
+<li>Compare two different models for predicting house prices</li>
+</ul>
+<p>In this notebook you will be provided with some already complete code as well as some code that you should complete yourself in order to answer quiz questions. The code we provide to complte is optional and is there to assist you with solving the problems but feel free to ignore the helper code and write your own.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Fire-up-graphlab-create">Fire up graphlab create<a class="anchor-link" href="#Fire-up-graphlab-create">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="kn">import</span> <span class="nn">graphlab</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Load-house-sales-data">Load house sales data<a class="anchor-link" href="#Load-house-sales-data">�</a></h1><p>Dataset is from house sales in King County, the region where the city of Seattle, WA is located.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">sales</span> <span class="o">=</span> <span class="n">graphlab</span><span class="o">.</span><span class="n">SFrame</span><span class="p">(</span><span class="s">'kc_house_data.gl/'</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Split-data-into-training-and-testing">Split data into training and testing<a class="anchor-link" href="#Split-data-into-training-and-testing">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We use seed=0 so that everyone running this notebook gets the same results.  In practice, you may set a random seed (or let GraphLab Create pick a random seed for you).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">train_data</span><span class="p">,</span><span class="n">test_data</span> <span class="o">=</span> <span class="n">sales</span><span class="o">.</span><span class="n">random_split</span><span class="p">(</span><span class="o">.</span><span class="mi">8</span><span class="p">,</span><span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Useful-SFrame-summary-functions">Useful SFrame summary functions<a class="anchor-link" href="#Useful-SFrame-summary-functions">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>In order to make use of the closed form soltion as well as take advantage of graphlab's built in functions we will review some important ones. In particular:</p>
+<ul>
+<li>Computing the sum of an SArray</li>
+<li>Computing the arithmetic average (mean) of an SArray</li>
+<li>multiplying SArrays by constants</li>
+<li>multiplying SArrays by other SArrays</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="c"># Let's compute the mean of the House Prices in King County in 2 different ways.</span>
+<span class="n">prices</span> <span class="o">=</span> <span class="n">sales</span><span class="p">[</span><span class="s">'price'</span><span class="p">]</span> <span class="c"># extract the price column of the sales SFrame -- this is now an SArray</span>
+
+<span class="c"># recall that the arithmetic average (the mean) is the sum of the prices divided by the total number of houses:</span>
+<span class="n">sum_prices</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">num_houses</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="c"># when prices is an SArray .size() returns its length</span>
+<span class="n">avg_price_1</span> <span class="o">=</span> <span class="n">sum_prices</span><span class="o">/</span><span class="n">num_houses</span>
+<span class="n">avg_price_2</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="c"># if you just want the average, the .mean() function</span>
+<span class="k">print</span> <span class="s">"average price via method 1: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">avg_price_1</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"average price via method 2: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">avg_price_2</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>average price via method 1: 540088.141905
+average price via method 2: 540088.141905
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>As we see we get the same answer both ways</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="c"># if we want to multiply every price by 0.5 it's a simple as:</span>
+<span class="n">half_prices</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">prices</span>
+<span class="c"># Let's compute the sum of squares of price. We can multiply two SArrays of the same length elementwise also with *</span>
+<span class="n">prices_squared</span> <span class="o">=</span> <span class="n">prices</span><span class="o">*</span><span class="n">prices</span>
+<span class="n">sum_prices_squared</span> <span class="o">=</span> <span class="n">prices_squared</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="c"># price_squared is an SArray of the squares and we want to add them up.</span>
+<span class="k">print</span> <span class="s">"the sum of price squared is: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sum_prices_squared</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>the sum of price squared is: 9.21732513355e+15
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Aside: The python notation x.xxe+yy means x.xx * 10^(yy). e.g 100 = 10^2 = 1*10^2 = 1e2</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Build-a-generic-simple-linear-regression-function">Build a generic simple linear regression function<a class="anchor-link" href="#Build-a-generic-simple-linear-regression-function">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Armed with these SArray functions we can use the closed form solution found from lecture to compute the slope and intercept for a simple linear regression on observations stored as SArrays: input_feature, output.</p>
+<p>Complete the following function (or write your own) to compute the simple linear regression slope and intercept:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[77]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="k">def</span> <span class="nf">simple_linear_regression</span><span class="p">(</span><span class="n">input_feature</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="c"># compute the mean of  input_feature and output</span>
+    <span class="n">XMean</span> <span class="o">=</span> <span class="n">input_feature</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">YMean</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="c"># compute the product of the output and the input_feature and its mean</span>
+    <span class="n">XYSum</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_feature</span><span class="o">*</span><span class="n">output</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">inpSize</span> <span class="o">=</span> <span class="n">input_feature</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">XYMean</span> <span class="o">=</span> <span class="p">((</span><span class="n">input_feature</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span><span class="o">*</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">sum</span><span class="p">()))</span><span class="o">/</span><span class="n">inpSize</span>
+    <span class="c"># compute the squared value of the input_feature and its mean</span>
+    <span class="n">X2Sum</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_feature</span><span class="o">*</span><span class="n">input_feature</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">X2Mean</span> <span class="o">=</span> <span class="p">((</span><span class="n">input_feature</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span><span class="o">*</span><span class="p">(</span><span class="n">input_feature</span><span class="o">.</span><span class="n">sum</span><span class="p">()))</span><span class="o">/</span><span class="n">inpSize</span>
+    <span class="c"># use the formula for the slope</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">((</span><span class="n">XYSum</span> <span class="o">-</span> <span class="n">XYMean</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">X2Sum</span> <span class="o">-</span> <span class="n">X2Mean</span><span class="p">))</span>
+    <span class="c"># use the formula for the intercept</span>
+    <span class="n">intercept</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">YMean</span> <span class="o">-</span> <span class="p">(</span><span class="n">slope</span><span class="o">*</span><span class="n">XMean</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">intercept</span><span class="p">,</span> <span class="n">slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We can test that our function works by passing it something where we know the answer. In particular we can generate a feature and then put the output exactly on a line: output = 1 + 1*input_feature then we know both our slope and intercept should be 1</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[78]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">test_feature</span> <span class="o">=</span> <span class="n">graphlab</span><span class="o">.</span><span class="n">SArray</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">test_output</span> <span class="o">=</span> <span class="n">graphlab</span><span class="o">.</span><span class="n">SArray</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span><span class="o">*</span><span class="n">test_feature</span><span class="p">)</span>
+<span class="p">(</span><span class="n">test_intercept</span><span class="p">,</span> <span class="n">test_slope</span><span class="p">)</span> <span class="o">=</span>  <span class="n">simple_linear_regression</span><span class="p">(</span><span class="n">test_feature</span><span class="p">,</span> <span class="n">test_output</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"Intercept: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_intercept</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"Slope: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">test_slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>[0L, 1L, 2L, 3L, 4L]
+[1L, 2L, 3L, 4L, 5L]
+Intercept: 1.0
+Slope: 1.0
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now that we know it works let's build a regression model for predicting price based on sqft_living. Rembember that we train on train_data!</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[79]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">sqft_intercept</span><span class="p">,</span> <span class="n">sqft_slope</span> <span class="o">=</span> <span class="n">simple_linear_regression</span><span class="p">(</span><span class="n">train_data</span><span class="p">[</span><span class="s">'sqft_living'</span><span class="p">],</span> <span class="n">train_data</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
+
+<span class="k">print</span> <span class="s">"Intercept: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sqft_intercept</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"Slope: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sqft_slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Intercept: -47116.0765749
+Slope: 281.958838568
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Predicting-Values">Predicting Values<a class="anchor-link" href="#Predicting-Values">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now that we have the model parameters: intercept &amp; slope we can make predictions. Using SArrays it's easy to multiply an SArray by a constant and add a constant value. Complete the following function to return the predicted output given the input_feature, slope and intercept:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[80]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="k">def</span> <span class="nf">get_regression_predictions</span><span class="p">(</span><span class="n">input_feature</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">slope</span><span class="p">):</span>
+    <span class="c"># calculate the predicted values:</span>
+    <span class="n">predicted_values</span> <span class="o">=</span> <span class="n">intercept</span><span class="o">+</span> <span class="p">(</span><span class="n">slope</span><span class="o">*</span><span class="n">input_feature</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">predicted_values</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now that we can calculate a prediction given the slop and intercept let's make a prediction. Use (or alter) the following to find out the estimated price for a house with 2650 squarefeet according to the squarefeet model we estiamted above.</p>
+<p><strong>Quiz Question: Using your Slope and Intercept from (4), What is the predicted price for a house with 2650 sqft?</strong></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[81]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">my_house_sqft</span> <span class="o">=</span> <span class="mi">2650</span>
+<span class="n">estimated_price</span> <span class="o">=</span> <span class="n">get_regression_predictions</span><span class="p">(</span><span class="n">my_house_sqft</span><span class="p">,</span> <span class="n">sqft_intercept</span><span class="p">,</span> <span class="n">sqft_slope</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"The estimated price for a house with </span><span class="si">%d</span><span class="s"> squarefeet is $</span><span class="si">%.2f</span><span class="s">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_house_sqft</span><span class="p">,</span> <span class="n">estimated_price</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>The estimated price for a house with 2650 squarefeet is $700074.85
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Residual-Sum-of-Squares">Residual Sum of Squares<a class="anchor-link" href="#Residual-Sum-of-Squares">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now that we have a model and can make predictions let's evaluate our model using Residual Sum of Squares (RSS). Recall that RSS is the sum of the squares of the residuals and the residuals is just a fancy word for the difference between the predicted output and the true output.</p>
+<p>Complete the following (or write your own) function to compute the RSS of a simple linear regression model given the input_feature, output, intercept and slope:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[82]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="k">def</span> <span class="nf">get_residual_sum_of_squares</span><span class="p">(</span><span class="n">input_feature</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">slope</span><span class="p">):</span>
+    <span class="c"># First get the predictions</span>
+    <span class="n">estimated_price</span> <span class="o">=</span> <span class="n">get_regression_predictions</span><span class="p">(</span><span class="n">input_feature</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">slope</span><span class="p">)</span>
+    <span class="c"># then compute the residuals (since we are squaring it doesn't matter which order you subtract)</span>
+    <span class="n">residuals</span> <span class="o">=</span> <span class="p">(</span><span class="n">output</span> <span class="o">-</span> <span class="n">estimated_price</span><span class="p">)</span>
+    <span class="c"># square the residuals and add them up</span>
+    <span class="n">RSS</span> <span class="o">=</span> <span class="p">(</span><span class="n">residuals</span> <span class="o">*</span> <span class="n">residuals</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">RSS</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's test our get_residual_sum_of_squares function by applying it to the test model where the data lie exactly on a line. Since they lie exactly on a line the residual sum of squares should be zero!</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[83]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="k">print</span> <span class="n">get_residual_sum_of_squares</span><span class="p">(</span><span class="n">test_feature</span><span class="p">,</span> <span class="n">test_output</span><span class="p">,</span> <span class="n">test_intercept</span><span class="p">,</span> <span class="n">test_slope</span><span class="p">)</span> <span class="c"># should be 0.0</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>0.0
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now use your function to calculate the RSS on training data from the squarefeet model calculated above.</p>
+<p><strong>Quiz Question: According to this function and the slope and intercept from the squarefeet model What is the RSS for the simple linear regression using squarefeet to predict prices on TRAINING data?</strong></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[84]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">rss_prices_on_sqft</span> <span class="o">=</span> <span class="n">get_residual_sum_of_squares</span><span class="p">(</span><span class="n">train_data</span><span class="p">[</span><span class="s">'sqft_living'</span><span class="p">],</span> <span class="n">train_data</span><span class="p">[</span><span class="s">'price'</span><span class="p">],</span> <span class="n">sqft_intercept</span><span class="p">,</span> <span class="n">sqft_slope</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">'The RSS of predicting Prices based on Square Feet is : '</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rss_prices_on_sqft</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>The RSS of predicting Prices based on Square Feet is : 1.20191835632e+15
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Predict-the-squarefeet-given-price">Predict the squarefeet given price<a class="anchor-link" href="#Predict-the-squarefeet-given-price">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>What if we want to predict the squarefoot given the price? Since we have an equation y = a + b*x we can solve the function for x. So that if we have the intercept (a) and the slope (b) and the price (y) we can solve for the estimated squarefeet (x).</p>
+<p>Comlplete the following function to compute the inverse regression estimate, i.e. predict the input_feature given the output!</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[85]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="k">def</span> <span class="nf">inverse_regression_predictions</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">slope</span><span class="p">):</span>
+    <span class="c"># solve output = intercept + slope*input_feature for input_feature. Use this equation to compute the inverse predictions:</span>
+    <span class="n">estimated_feature</span> <span class="o">=</span> <span class="p">(</span><span class="n">output</span><span class="o">-</span><span class="n">intercept</span><span class="p">)</span><span class="o">/</span><span class="n">slope</span>
+    <span class="k">return</span> <span class="n">estimated_feature</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now that we have a function to compute the squarefeet given the price from our simple regression model let's see how big we might expect a house that coses $800,000 to be.</p>
+<p><strong>Quiz Question: According to this function and the regression slope and intercept from (3) what is the estimated square-feet for a house costing $800,000?</strong></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[86]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="n">my_house_price</span> <span class="o">=</span> <span class="mi">800000</span>
+<span class="k">print</span> <span class="n">sqft_intercept</span>
+<span class="k">print</span> <span class="n">sqft_slope</span>
+
+<span class="n">estimated_squarefeet</span> <span class="o">=</span> <span class="n">inverse_regression_predictions</span><span class="p">(</span><span class="n">my_house_price</span><span class="p">,</span> <span class="n">sqft_intercept</span><span class="p">,</span> <span class="n">sqft_slope</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"The estimated squarefeet for a house worth $</span><span class="si">%.2f</span><span class="s"> is </span><span class="si">%d</span><span class="s">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_house_price</span><span class="p">,</span> <span class="n">estimated_squarefeet</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>-47116.0765749
+281.958838568
+The estimated squarefeet for a house worth $800000.00 is 3004
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="New-Model:-estimate-prices-from-bedrooms">New Model: estimate prices from bedrooms<a class="anchor-link" href="#New-Model:-estimate-prices-from-bedrooms">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We have made one model for predicting house prices using squarefeet, but there are many other features in the sales SFrame. 
+Use your simple linear regression function to estimate the regression parameters from predicting Prices based on number of bedrooms. Use the training data!</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[64]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="c"># Estimate the slope and intercept for predicting 'price' based on 'bedrooms'</span>
+<span class="n">br_intercept</span><span class="p">,</span> <span class="n">br_slope</span> <span class="o">=</span> <span class="n">simple_linear_regression</span><span class="p">(</span><span class="n">train_data</span><span class="p">[</span><span class="s">'bedrooms'</span><span class="p">],</span> <span class="n">train_data</span><span class="p">[</span><span class="s">'price'</span><span class="p">])</span>
+
+<span class="k">print</span> <span class="s">"Intercept: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">br_intercept</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">"Slope: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">br_slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Intercept: 7388.07029452
+Slope: 157887.0
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Test-your-Linear-Regression-Algorithm">Test your Linear Regression Algorithm<a class="anchor-link" href="#Test-your-Linear-Regression-Algorithm">�</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we have two models for predicting the price of a house. How do we know which one is better? Calculate the RSS on the TEST data (remember this data wasn't involved in learning the model). Compute the RSS from predicting prices using bedrooms and from predicting prices using squarefeet.</p>
+<p><strong>Quiz Question: Which model (square feet or bedrooms) has lowest RSS on TEST data? Think about why this might be the case.</strong></p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[65]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="c"># Compute RSS when using bedrooms on TEST data:</span>
+<span class="k">print</span> <span class="n">get_residual_sum_of_squares</span><span class="p">(</span><span class="n">test_feature</span><span class="p">,</span> <span class="n">test_output</span><span class="p">,</span> <span class="n">br_intercept</span><span class="p">,</span> <span class="n">br_slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>7.71438813528e+11
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[66]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span class="c"># Compute RSS when using squarfeet on TEST data:</span>
+<span class="k">print</span> <span class="n">get_residual_sum_of_squares</span><span class="p">(</span><span class="n">test_feature</span><span class="p">,</span> <span class="n">test_output</span><span class="p">,</span> <span class="n">sqft_intercept</span><span class="p">,</span> <span class="n">sqft_slope</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>256880771.697
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div></body></html>
